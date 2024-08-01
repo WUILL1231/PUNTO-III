@@ -1,0 +1,84 @@
+EN ESTE PUNTO SE USARON DOS CLASE LAS CUALES ESTARAN DEBIDAMENTE MARCADAS:
+
+_____________________________________________________________________________________________________________________________________
+
+import javax.jms.Connection;
+import javax.jms.ConnectionFactory;
+import javax.jms.Destination;
+import javax.jms.JMSException;
+import javax.jms.MessageProducer;
+import javax.jms.Session;
+import javax.jms.TextMessage;
+import org.apache.activemq.artemis.jms.client.ActiveMQJMSConnectionFactory;
+
+public class Productor {
+
+    public static void main(String[] args) {
+        String brokerURL = "tcp://localhost:61616";
+        String queueName = "transacciones";
+
+        ConnectionFactory connectionFactory = new ActiveMQJMSConnectionFactory(brokerURL);
+        try (Connection connection = connectionFactory.createConnection()) {
+            connection.start();
+            Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+            Destination destination = session.createQueue(queueName);
+            MessageProducer producer = session.createProducer(destination);
+
+            String mensaje = "Compra: Producto XYZ, Cantidad: 10";
+            TextMessage textMessage = session.createTextMessage(mensaje);
+
+            producer.send(textMessage);
+            System.out.println("Mensaje enviado: " + mensaje);
+
+        } catch (JMSException e) {
+            e.printStackTrace();
+        }
+    }
+}
+_______________________________________________________________________________________________________________________
+import javax.jms.Connection;
+import javax.jms.ConnectionFactory;
+import javax.jms.Destination;
+import javax.jms.JMSException;
+import javax.jms.MessageConsumer;
+import javax.jms.MessageListener;
+import javax.jms.Session;
+import javax.jms.TextMessage;
+import org.apache.activemq.artemis.jms.client.ActiveMQJMSConnectionFactory;
+
+public class Consumidor {
+
+    public static void main(String[] args) {
+        String brokerURL = "tcp://localhost:61616";
+        String queueName = "transacciones";
+
+        ConnectionFactory connectionFactory = new ActiveMQJMSConnectionFactory(brokerURL);
+        try (Connection connection = connectionFactory.createConnection()) {
+            connection.start();
+            Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+            Destination destination = session.createQueue(queueName);
+            MessageConsumer consumer = session.createConsumer(destination);
+
+            consumer.setMessageListener(new MessageListener() {
+                @Override
+                public void onMessage(javax.jms.Message message) {
+                    if (message instanceof TextMessage) {
+                        try {
+                            TextMessage textMessage = (TextMessage) message;
+                            String mensaje = textMessage.getText();
+                            System.out.println("Mensaje recibido: " + mensaje);
+                        } catch (JMSException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            });
+
+            System.out.println("Esperando mensajes...");
+            Thread.sleep(10000); 
+
+        } catch (JMSException | InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+}
